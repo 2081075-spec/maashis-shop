@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MAASHI's SHOP - 在庫更新ツール（管理用）</title>
+<style>
+:root{--bg:#0a0a0c;--panel:#141418;--panel2:#1b1b21;--gold:#d4af37;--gold2:#f0d878;--txt:#f3f3f3;--sub:#a9a9b2;--line:#2a2a32;--ok:#7ec99b;--warn:#e07a7a;}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif;}
+.wrap{max-width:1100px;margin:0 auto;padding:0 18px 80px;}
+header{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#101014,#0a0a0c);position:sticky;top:0;z-index:5;}
+.brand{padding:16px 0 4px;font-size:20px;font-weight:800;background:linear-gradient(90deg,var(--gold),var(--gold2),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.sub{color:var(--sub);font-size:12px;padding-bottom:12px;}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:0 0 14px;}
+.bar input,.bar select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:10px 12px;border-radius:10px;font-size:13px;}
+#q{flex:1 1 260px;min-width:0;}
+.count{color:var(--sub);font-size:12px;margin-left:auto;white-space:nowrap;}
+.status{padding:10px 0;font-size:13px;color:var(--sub);}
+.status b{color:var(--gold2);}
+.notice{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.8;color:var(--sub);margin:10px 0;}
+.notice b{color:var(--txt);}
+.fallback{display:none;background:var(--panel2);border:1px dashed var(--warn);border-radius:10px;padding:12px 14px;font-size:12.5px;margin:10px 0;color:var(--txt);}
+.fallback.show{display:block;}
+.fallback input[type=file]{display:block;margin-top:8px;color:var(--sub);}
+.actions{position:sticky;top:64px;z-index:4;background:var(--bg);padding:10px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--line);}
+button{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#12120e;border:none;padding:12px 20px;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;}
+button:hover{filter:brightness(1.08);}
+button.secondary{background:var(--panel2);color:var(--txt);border:1px solid var(--line);font-weight:600;}
+.ts{color:var(--sub);font-size:12px;}
+.list{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
+.item{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+.item.changed{border-color:var(--gold);}
+.thumb{width:56px;height:56px;flex:0 0 56px;border-radius:8px;background:#000;object-fit:contain;border:1px solid var(--line);}
+.info{flex:1 1 220px;min-width:0;}
+.pname{font-size:13.5px;font-weight:700;}
+.jp{display:block;color:var(--sub);font-size:11px;margin-top:2px;}
+.tags{margin-top:4px;font-size:10.5px;color:var(--sub);}
+.ranks{display:flex;gap:10px;flex-wrap:wrap;}
+.rank{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;gap:4px;}
+.rank label{font-size:10px;color:var(--sub);}
+.rank .cond{font-weight:800;color:var(--gold2);font-size:11px;}
+.rank input{width:88px;background:#101014;border:1px solid var(--line);color:var(--txt);padding:5px 6px;border-radius:6px;font-size:12.5px;}
+.hidewrap{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--sub);white-space:nowrap;}
+.empty{color:var(--sub);text-align:center;padding:60px 0;}
+@media(max-width:640px){.item{flex-direction:column;align-items:stretch;}.thumb{width:100%;height:120px;flex:none;}}
+</style></head><body>
+<header><div class="wrap">
+  <div class="brand">MAASHI's SHOP — 在庫更新ツール</div>
+  <div class="sub">この画面は非公開の管理用ツールです（お客様向けページではありません）。価格・在庫・非表示を編集して stock.json を書き出します。</div>
+</div></header>
+<main class="wrap">
+  <div id="fbIndex" class="fallback">
+    <b>index.html を自動取得できませんでした。</b> ローカルでファイルを直接開いている場合に起こります。下から index.html を選択してください。
+    <input type="file" id="fileIndex" accept=".html">
+  </div>
+  <div id="fbStock" class="fallback">
+    <b>現在の stock.json を取得できませんでした。</b>（初回で存在しない場合は問題ありません）既存の stock.json があれば下から読み込めます。
+    <input type="file" id="fileStock" accept=".json">
+  </div>
+  <div class="notice">
+    <b>使い方：</b>①番号や在庫を書き換える　②「stock.jsonをダウンロード」を押す　③ダウンロードされた stock.json を GitHub の公開フォルダにアップロードして既存ファイルを置き換える　④1〜2分でお店のページに反映されます。
+  </div>
+  <div class="status" id="status">読み込み中…</div>
+  <div class="bar">
+    <input id="q" type="text" placeholder="商品名・型番で検索" />
+    <select id="fcat"><option value="">全種別</option><option value="PSA10">鑑定品 (PSA)</option><option value="BOX">未開封BOX</option></select>
+    <select id="fseries"><option value="">全シリーズ</option><option value="ポケモン">ポケモン</option><option value="ワンピース">ワンピース</option></select>
+    <select id="fstock"><option value="">在庫: すべて</option><option value="50">在庫50以下のみ</option><option value="10">在庫10以下のみ</option><option value="0">品切れ(0)のみ</option></select>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="actions">
+    <button id="downloadBtn">⬇ stock.json をダウンロード</button>
+    <button class="secondary" id="resetBtn">元の値に戻す</button>
+    <span class="ts" id="tsPreview"></span>
+  </div>
+  <div class="list" id="list"></div>
+  <div class="empty" id="empty" style="display:none">該当する商品がありません。</div>
+</main>
+<script src="admin.js"></script>
+</body></html>

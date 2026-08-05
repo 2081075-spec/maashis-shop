@@ -97,6 +97,7 @@ footer::before{content:'';position:absolute;top:-1px;left:50%;transform:translat
     <input id="q" type="text" placeholder="Search by name / code  |  商品名・型番で検索" />
     <select id="fcat"><option value="">All types / 全種別</option><option value="PSA10">Graded (PSA) / 鑑定品</option><option value="BOX">Sealed Box / 未開封BOX</option></select>
     <select id="fseries"><option value="">All series / 全シリーズ</option><option value="ポケモン">Pokémon</option><option value="ワンピース">One Piece</option></select>
+    <select id="fsort"><option value="">Sort / 並び替え</option><option value="price_desc">Price: High to Low / 価格が高い順</option><option value="price_asc">Price: Low to High / 価格が安い順</option></select>
     <span class="count" id="count"></span>
   </div>
   <div class="grid" id="grid"></div>
@@ -133,7 +134,7 @@ function card(p){
 }
 function render(){
   var q=(document.getElementById('q').value||'').toLowerCase().trim();
-  var fc=document.getElementById('fcat').value, fs=document.getElementById('fseries').value;
+  var fc=document.getElementById('fcat').value, fs=document.getElementById('fseries').value, so=document.getElementById('fsort').value;
   var list=DATA.filter(function(p){
     if(isHidden(p.id))return false;
     if(fc&&p.type!==fc)return false;
@@ -141,6 +142,13 @@ function render(){
     if(q){var hay=((p.nameEn||'')+' '+(p.name||'')+' '+(p.code||'')+' '+(p.series||'')).toLowerCase();if(hay.indexOf(q)<0)return false;}
     return true;
   });
+  if(so==='price_desc'||so==='price_asc'){
+    list=list.slice().sort(function(a,b){
+      var pa=(a.ranks&&a.ranks.length)?effPrice(a.id,0,a.ranks[0].price):0;
+      var pb=(b.ranks&&b.ranks.length)?effPrice(b.id,0,b.ranks[0].price):0;
+      return so==='price_desc'?(pb-pa):(pa-pb);
+    });
+  }
   document.getElementById('grid').innerHTML=list.map(card).join('');
   document.getElementById('count').textContent=list.length+' items / \u4ef6';
   document.getElementById('empty').style.display=list.length?'none':'block';
@@ -154,7 +162,7 @@ function loadStock(){
   }).catch(function(){});
 }
 document.addEventListener('DOMContentLoaded',function(){
-  ['q','fcat','fseries'].forEach(function(id){var el=document.getElementById(id);el.addEventListener('input',render);el.addEventListener('change',render);});
+  ['q','fcat','fseries','fsort'].forEach(function(id){var el=document.getElementById(id);el.addEventListener('input',render);el.addEventListener('change',render);});
   render();
   loadStock();
 });
